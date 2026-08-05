@@ -1239,7 +1239,28 @@
     font-weight: 400;
   }
 
-  /* ===== Strategy card: win/loss streak row ===== */
+  /* ===== Language switcher (fixed top-right) ===== */
+  .lang-switch {
+    position: fixed; top: 16px; right: 20px; z-index: 90;
+    display: inline-flex; align-items: center; gap: 2px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: 999px; padding: 4px 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .lang-switch button {
+    background: none; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: var(--text-3);
+    padding: 3px 7px; border-radius: 999px; font-family: inherit;
+    transition: color 0.12s, background 0.12s;
+    line-height: 1;
+  }
+  .lang-switch button:hover { color: var(--text-1); }
+  .lang-switch button.active { color: var(--accent); background: var(--accent-soft); }
+  .lang-sep { color: var(--text-3); font-size: 11px; opacity: 0.5; }
+  @media (max-width: 900px) {
+    .lang-switch { top: 12px; right: 12px; padding: 3px 8px; }
+  }
+
   .strat-streak {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
@@ -1850,34 +1871,34 @@
       </button>
     </div>
     <nav class="nav">
-      <div class="nav-label">Menu</div>
+      <div class="nav-label" data-i18n="nav.menu">Menu</div>
       <button class="nav-item active" data-view="dashboard">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-        Dashboard
+        <span data-i18n="nav.dashboard">Dashboard</span>
       </button>
       <button class="nav-item" data-view="trades">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-        Trades
+        <span data-i18n="nav.trades">Trades</span>
       </button>
       <button class="nav-item" data-view="calendar">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Calendar
+        <span data-i18n="nav.calendar">Calendar</span>
       </button>
       <button class="nav-item" data-view="analytics">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
-        Analytics
+        <span data-i18n="nav.analytics">Analytics</span>
       </button>
       <button class="nav-item" data-view="strategies">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Strategy Manager
+        <span data-i18n="nav.strategies">Strategy Manager</span>
       </button>
       <button class="nav-item" data-view="learning">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        Learning
+        <span data-i18n="nav.learning">Learning</span>
       </button>
       <button class="nav-item" data-view="leaderboard">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM5 4H2v2a3 3 0 0 0 3 3M19 4h3v2a3 3 0 0 1-3 3"/></svg>
-        Leaderboard
+        <span data-i18n="nav.leaderboard">Leaderboard</span>
       </button>
         </nav>
 
@@ -1913,7 +1934,7 @@
     <section class="view active" id="view-dashboard">
       <div class="topbar">
         <div>
-          <h1 class="page-title">Dashboard</h1>
+          <h1 class="page-title" data-i18n="page.dashboard.title">Dashboard</h1>
           <div class="page-subtitle" id="dash-subtitle">Welcome back — let's check your performance.</div>
         </div>
         <div class="topbar-actions">
@@ -1955,7 +1976,7 @@
 
 <button class="btn primary" id="btn-add-trade">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Trade
+            <span data-i18n="btn.newTrade">New Trade</span>
           </button>
         </div>
       </div>
@@ -2007,13 +2028,13 @@
     <section class="view" id="view-trades">
       <div class="topbar">
         <div>
-          <h1 class="page-title">Trades</h1>
+          <h1 class="page-title" data-i18n="page.trades.title">Trades</h1>
           <div class="page-subtitle" id="trades-subtitle">All Trades</div>
         </div>
         <div class="topbar-actions">
           <button class="btn primary" id="btn-add-trade-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Trade
+            <span data-i18n="btn.newTrade">New Trade</span>
           </button>
         </div>
       </div>
@@ -2021,21 +2042,21 @@
       <div class="panel">
         <div class="panel-body">
           <div class="filters">
-            <input type="text" class="filter-input" id="filter-search" placeholder="Search symbol / notes..." />
+            <input type="text" class="filter-input" id="filter-search" data-i18n-ph="filter.search" placeholder="Search symbol / notes..." />
             <select class="filter-select" id="filter-side">
-              <option value="">All Sides</option>
+              <option value="" data-i18n="filter.allSides">All Sides</option>
               <option value="LONG">Long</option>
               <option value="SHORT">Short</option>
             </select>
             <select class="filter-select" id="filter-result">
-              <option value="">All Results</option>
-              <option value="win">Win</option>
-              <option value="loss">Loss</option>
-              <option value="breakeven">Breakeven</option>
-              <option value="open">Open</option>
+              <option value="" data-i18n="filter.allResults">All Results</option>
+              <option value="win" data-i18n="result.win">Win</option>
+              <option value="loss" data-i18n="result.loss">Loss</option>
+              <option value="breakeven" data-i18n="result.breakeven">Breakeven</option>
+              <option value="open" data-i18n="result.open">Open</option>
             </select>
             <select class="filter-select" id="filter-asset">
-              <option value="">All Assets</option>
+              <option value="" data-i18n="filter.allAssets">All Assets</option>
               <option value="forex">Forex</option>
               <option value="futures">Futures</option>
               <option value="stock">Stock</option>
@@ -2049,7 +2070,7 @@
               <option value="r-desc">R Multiple (High→Low)</option>
               <option value="r-asc">R Multiple (Low→High)</option>
             </select>
-            <button class="btn btn-sm ghost" id="btn-reset-filter">Reset</button>
+            <button class="btn btn-sm ghost" id="btn-reset-filter" data-i18n="btn.reset">Reset</button>
           </div>
         </div>
       </div>
@@ -2059,16 +2080,16 @@
           <table id="trades-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Symbol</th>
-                <th>Direction</th>
-                <th>Size</th>
-                <th>Entry</th>
-                <th>Stop</th>
-                <th>Exit</th>
+                <th data-i18n="th.date">Date</th>
+                <th data-i18n="th.symbol">Symbol</th>
+                <th data-i18n="th.direction">Direction</th>
+                <th data-i18n="th.size">Size</th>
+                <th data-i18n="th.entry">Entry</th>
+                <th data-i18n="th.stop">Stop</th>
+                <th data-i18n="th.exit">Exit</th>
                 <th>R</th>
-                <th>P&L</th>
-                <th>Action</th>
+                <th data-i18n="th.pnl">P&L</th>
+                <th data-i18n="th.action">Action</th>
               </tr>
             </thead>
             <tbody id="trades-tbody"></tbody>
@@ -2081,8 +2102,8 @@
     <section class="view" id="view-calendar">
       <div class="topbar">
         <div>
-          <h1 class="page-title">Calendar</h1>
-          <div class="page-subtitle">Daily P&L Heatmap</div>
+          <h1 class="page-title" data-i18n="page.calendar.title">Calendar</h1>
+          <div class="page-subtitle" data-i18n="page.calendar.sub">Daily P&L Heatmap</div>
         </div>
         <div class="topbar-actions">
           <button class="btn btn-sm ghost" id="cal-today">Today</button>
@@ -2118,8 +2139,8 @@
     <section class="view" id="view-analytics">
       <div class="topbar">
         <div>
-          <h1 class="page-title">Analytics</h1>
-          <div class="page-subtitle">Analyze your trading performance</div>
+          <h1 class="page-title" data-i18n="page.analytics.title">Analytics</h1>
+          <div class="page-subtitle" data-i18n="page.analytics.sub">Analyze your trading performance</div>
         </div>
         <div class="topbar-actions">
           <select class="filter-select" id="analytics-period">
@@ -2195,13 +2216,13 @@
     <section class="view" id="view-strategies">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Strategy Manager</h1>
-          <div class="page-subtitle">Document, track and optimize your trading strategies</div>
+          <h1 class="page-title" data-i18n="page.strategies.title">Strategy Manager</h1>
+          <div class="page-subtitle" data-i18n="page.strategies.sub">Document, track and optimize your trading strategies</div>
         </div>
         <div class="page-actions">
           <button class="btn primary" id="btn-add-strategy">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Strategy
+            <span data-i18n="btn.newStrategy">New Strategy</span>
           </button>
         </div>
       </div>
@@ -2212,7 +2233,7 @@
     <section class="view" id="view-learning">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Learning</h1>
+          <h1 class="page-title" data-i18n="page.learning.title">Learning</h1>
           <div class="page-subtitle">Premium strategy courses · auto bots · live community</div>
         </div>
       </div>
@@ -2290,8 +2311,8 @@
     <section class="view" id="view-leaderboard">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Leaderboard</h1>
-          <div class="page-subtitle">Top performing traders in the JP community · Live</div>
+          <h1 class="page-title" data-i18n="page.leaderboard.title">Leaderboard</h1>
+          <div class="page-subtitle" data-i18n="page.leaderboard.sub">Top performing traders in the JP community · Live</div>
         </div>
         <button class="btn ghost" id="btn-lb-manage">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -2680,6 +2701,16 @@
 </div>
 
 <div class="toast-container" id="toast-container"></div>
+
+<!-- Language switcher (fixed top-right) -->
+<div class="lang-switch" id="lang-switch">
+  <button data-lang-btn="zh-TW" onclick="setLang('zh-TW')">繁</button>
+  <span class="lang-sep">/</span>
+  <button data-lang-btn="zh-CN" onclick="setLang('zh-CN')">简</button>
+  <span class="lang-sep">/</span>
+  <button data-lang-btn="en" onclick="setLang('en')">EN</button>
+</div>
+
 <input type="file" id="file-import" accept="application/json,.json" style="display:none" />
 
 <script>
@@ -2854,6 +2885,105 @@
     // Fallback
     return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:#E2E8F0;color:#64748B;font-size:${Math.round(size*0.38)}px;font-weight:600;font-family:system-ui,sans-serif;flex-shrink:0;">${escapeHtml(s.slice(0,Math.min(3,s.length)))}</span>`;
   }
+
+  // ================================================================
+  // i18n — 三语支持 (简体 / 繁體 / English), 默认简体
+  // ================================================================
+  const LANG_KEY = 'tradebook_lang';
+  let currentLang = 'zh-CN';
+  try { currentLang = localStorage.getItem(LANG_KEY) || 'zh-CN'; } catch(e) {}
+
+  const I18N = {
+    // ===== 导航 =====
+    'nav.menu':        { 'zh-CN': '菜单',       'zh-TW': '選單',       'en': 'Menu' },
+    'nav.dashboard':   { 'zh-CN': '仪表盘',     'zh-TW': '儀表板',     'en': 'Dashboard' },
+    'nav.trades':      { 'zh-CN': '交易记录',   'zh-TW': '交易記錄',   'en': 'Trades' },
+    'nav.calendar':    { 'zh-CN': '日历',       'zh-TW': '日曆',       'en': 'Calendar' },
+    'nav.analytics':   { 'zh-CN': '数据分析',   'zh-TW': '數據分析',   'en': 'Analytics' },
+    'nav.strategies':  { 'zh-CN': '策略管理',   'zh-TW': '策略管理',   'en': 'Strategy Manager' },
+    'nav.learning':    { 'zh-CN': '学习',       'zh-TW': '學習',       'en': 'Learning' },
+    'nav.leaderboard': { 'zh-CN': '排行榜',     'zh-TW': '排行榜',     'en': 'Leaderboard' },
+    // ===== 页面标题 =====
+    'page.dashboard.title':    { 'zh-CN': '仪表盘',       'zh-TW': '儀表板',       'en': 'Dashboard' },
+    'page.dashboard.sub':      { 'zh-CN': '你的交易表现总览', 'zh-TW': '你的交易表現總覽', 'en': 'Your trading performance at a glance' },
+    'page.trades.title':       { 'zh-CN': '交易记录',     'zh-TW': '交易記錄',     'en': 'Trades' },
+    'page.calendar.title':     { 'zh-CN': '日历',         'zh-TW': '日曆',         'en': 'Calendar' },
+    'page.calendar.sub':       { 'zh-CN': '每日盈亏热力图', 'zh-TW': '每日盈虧熱力圖', 'en': 'Daily P&L Heatmap' },
+    'page.analytics.title':    { 'zh-CN': '数据分析',     'zh-TW': '數據分析',     'en': 'Analytics' },
+    'page.analytics.sub':      { 'zh-CN': '分析你的交易表现', 'zh-TW': '分析你的交易表現', 'en': 'Analyze your trading performance' },
+    'page.strategies.title':   { 'zh-CN': '策略管理',     'zh-TW': '策略管理',     'en': 'Strategy Manager' },
+    'page.strategies.sub':     { 'zh-CN': '记录、追踪并优化你的交易策略', 'zh-TW': '記錄、追蹤並優化你的交易策略', 'en': 'Document, track and optimize your trading strategies' },
+    'page.learning.title':     { 'zh-CN': '学习',         'zh-TW': '學習',         'en': 'Learning' },
+    'page.leaderboard.title':  { 'zh-CN': '排行榜',       'zh-TW': '排行榜',       'en': 'Leaderboard' },
+    'page.leaderboard.sub':    { 'zh-CN': 'JP 社区顶尖交易员 · 实时', 'zh-TW': 'JP 社群頂尖交易員 · 即時', 'en': 'Top performing traders in the JP community · Live' },
+    // ===== 通用按钮 =====
+    'btn.newTrade':    { 'zh-CN': '新建交易',   'zh-TW': '新增交易',   'en': 'New Trade' },
+    'btn.newStrategy': { 'zh-CN': '新建策略',   'zh-TW': '新增策略',   'en': 'New Strategy' },
+    'btn.save':        { 'zh-CN': '保存',       'zh-TW': '儲存',       'en': 'Save' },
+    'btn.saveTrade':   { 'zh-CN': '保存交易',   'zh-TW': '儲存交易',   'en': 'Save Trade' },
+    'btn.cancel':      { 'zh-CN': '取消',       'zh-TW': '取消',       'en': 'Cancel' },
+    'btn.reset':       { 'zh-CN': '重置',       'zh-TW': '重置',       'en': 'Reset' },
+    'btn.manage':      { 'zh-CN': '管理',       'zh-TW': '管理',       'en': 'Manage' },
+    'btn.today':       { 'zh-CN': '今天',       'zh-TW': '今天',       'en': 'Today' },
+    'btn.viewAll':     { 'zh-CN': '查看全部',   'zh-TW': '查看全部',   'en': 'View All' },
+    // ===== 交易表 & 过滤器 =====
+    'th.date':         { 'zh-CN': '日期',       'zh-TW': '日期',       'en': 'Date' },
+    'th.symbol':       { 'zh-CN': '品种',       'zh-TW': '品種',       'en': 'Symbol' },
+    'th.direction':    { 'zh-CN': '方向',       'zh-TW': '方向',       'en': 'Direction' },
+    'th.size':         { 'zh-CN': '手数',       'zh-TW': '手數',       'en': 'Size' },
+    'th.entry':        { 'zh-CN': '入场价',     'zh-TW': '進場價',     'en': 'Entry' },
+    'th.stop':         { 'zh-CN': '止损',       'zh-TW': '止損',       'en': 'Stop' },
+    'th.exit':         { 'zh-CN': '出场价',     'zh-TW': '出場價',     'en': 'Exit' },
+    'th.pnl':          { 'zh-CN': '盈亏',       'zh-TW': '盈虧',       'en': 'P&L' },
+    'th.action':       { 'zh-CN': '操作',       'zh-TW': '操作',       'en': 'Action' },
+    'filter.search':   { 'zh-CN': '搜索品种 / 备注...', 'zh-TW': '搜尋品種 / 備註...', 'en': 'Search symbol / notes...' },
+    'filter.allSides': { 'zh-CN': '全部方向',   'zh-TW': '全部方向',   'en': 'All Sides' },
+    'filter.allResults':{ 'zh-CN': '全部结果',  'zh-TW': '全部結果',   'en': 'All Results' },
+    'filter.allAssets':{ 'zh-CN': '全部品种',   'zh-TW': '全部品種',   'en': 'All Assets' },
+    'result.win':      { 'zh-CN': '盈利',       'zh-TW': '盈利',       'en': 'Win' },
+    'result.loss':     { 'zh-CN': '亏损',       'zh-TW': '虧損',       'en': 'Loss' },
+    'result.breakeven':{ 'zh-CN': '保本',       'zh-TW': '保本',       'en': 'Breakeven' },
+    'result.open':     { 'zh-CN': '持仓中',     'zh-TW': '持倉中',     'en': 'Open' },
+    // ===== 语言名 =====
+    'lang.name':       { 'zh-CN': '简体',       'zh-TW': '繁體',       'en': 'EN' },
+  };
+
+  function t(key) {
+    const entry = I18N[key];
+    if (!entry) return key;
+    return entry[currentLang] || entry['en'] || key;
+  }
+
+  // Apply translations to all [data-i18n] elements (textContent)
+  // and [data-i18n-ph] elements (placeholder).
+  function applyLang() {
+    document.documentElement.setAttribute('lang', currentLang === 'en' ? 'en' : (currentLang === 'zh-TW' ? 'zh-Hant' : 'zh-Hans'));
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const val = t(key);
+      if (val) el.textContent = val;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const key = el.getAttribute('data-i18n-ph');
+      const val = t(key);
+      if (val) el.setAttribute('placeholder', val);
+    });
+    // Update language switch active state
+    document.querySelectorAll('[data-lang-btn]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-lang-btn') === currentLang);
+    });
+    // Re-render dynamic views so JS-generated text updates too
+    if (typeof render === 'function') { try { render(); } catch(e) {} }
+  }
+
+  function setLang(lang) {
+    if (!['zh-CN', 'zh-TW', 'en'].includes(lang)) return;
+    currentLang = lang;
+    try { localStorage.setItem(LANG_KEY, lang); } catch(e) {}
+    applyLang();
+  }
+  // Expose for inline onclick handlers (script runs inside an IIFE)
+  window.setLang = setLang;
 
   // ================================================================
   // State & Storage
@@ -6192,6 +6322,7 @@
     wireEvents();
     updateStrategyDropdown();
     navTo('dashboard');
+    applyLang();
     // Load econ calendar (non-blocking)
     loadEconCalendar().catch(() => {});
   }
