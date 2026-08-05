@@ -1232,6 +1232,66 @@
     margin-left: 12px;
     font-weight: 400;
   }
+
+  /* ===== Analytics: streak cards ===== */
+  .an-streak-row {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px;
+  }
+  .an-streak-card {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+    transition: border-color 0.12s;
+  }
+  .an-streak-card:hover { border-color: var(--border-strong); }
+  .an-streak-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .an-streak-value {
+    font-size: 19px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em; line-height: 1.1;
+  }
+  .an-streak-label {
+    font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: 3px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .an-streak-sub {
+    margin-left: auto; font-size: 12px; color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  }
+
+  /* ===== Analytics: Long vs Short ===== */
+  .ls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ls-block { padding: 4px 2px; }
+  .ls-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .ls-name { font-size: 13px; font-weight: 600; color: var(--text-0); display: inline-flex; align-items: center; gap: 7px; }
+  .ls-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .ls-count { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .ls-net {
+    font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em; margin-bottom: 10px;
+  }
+  .ls-bar-track {
+    height: 6px; background: var(--bg-2); border-radius: 999px; overflow: hidden; margin-bottom: 12px;
+  }
+  .ls-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+  .ls-metrics { display: flex; flex-direction: column; gap: 6px; }
+  .ls-metrics > div {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px;
+  }
+  .ls-metrics span { color: var(--text-2); }
+  .ls-metrics strong { color: var(--text-0); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .ls-verdict {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-2); text-align: center;
+  }
+  @media (max-width: 640px) {
+    .an-streak-row { grid-template-columns: 1fr; }
+    .ls-grid { grid-template-columns: 1fr; }
+  }
+
   .session-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -2082,6 +2142,9 @@
       <div class="stats-grid" id="analytics-stats"></div>
       <div class="stats-grid" id="analytics-stats-2"></div>
 
+      <!-- Streak & consistency row -->
+      <div class="an-streak-row" id="an-streak-row"></div>
+
       <!-- Multi-strategy cumulative P&L comparison -->
       <div class="panel">
         <div class="panel-header">
@@ -2094,36 +2157,18 @@
         </div>
       </div>
 
+      <!-- Long vs Short + P&L by Symbol -->
       <div class="grid-2-eq">
         <div class="panel">
-          <div class="panel-header"><div class="panel-title">Monthly P&L</div></div>
-          <div class="chart-container tall"><canvas id="monthly-chart"></canvas></div>
+          <div class="panel-header">
+            <div class="panel-title">Long vs Short</div>
+            <div class="session-sub">Directional edge</div>
+          </div>
+          <div class="panel-body" id="longshort-body"></div>
         </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title">Yearly P&L</div></div>
-          <div class="chart-container tall"><canvas id="yearly-chart"></canvas></div>
-        </div>
-      </div>
-
-      <div class="grid-2-eq">
         <div class="panel">
           <div class="panel-header"><div class="panel-title">P&L by Symbol</div></div>
           <div class="chart-container tall"><canvas id="symbol-chart"></canvas></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title">R Multiple Distribution</div></div>
-          <div class="chart-container tall"><canvas id="rmultiple-chart"></canvas></div>
-        </div>
-      </div>
-
-      <div class="grid-2-eq">
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title">Day of Week</div></div>
-          <div class="chart-container"><canvas id="dow-chart"></canvas></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title">Hour of Day</div></div>
-          <div class="chart-container"><canvas id="hour-chart"></canvas></div>
         </div>
       </div>
 
@@ -2135,26 +2180,6 @@
         </div>
         <div class="session-grid" id="session-grid">
           <!-- populated by JS -->
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header"><div class="panel-title">Monthly Performance</div></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Trades</th>
-                <th>Win Rate</th>
-                <th>Net P&L</th>
-                <th>Avg R</th>
-                <th>Best Day</th>
-                <th>Worst Day</th>
-              </tr>
-            </thead>
-            <tbody id="monthly-tbody"></tbody>
-          </table>
         </div>
       </div>
 
@@ -4314,6 +4339,115 @@
   }
 
   // Multi-strategy cumulative P&L comparison
+  // Max consecutive winning / losing streaks + Long vs Short breakdown
+  function renderStreakRow() {
+    const row = $('an-streak-row');
+    if (!row) return;
+    const list = getAnalyticsList().filter(t => isClosed(t))
+      .sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate));
+
+    let maxWinStreak = 0, maxLossStreak = 0;
+    let curWin = 0, curLoss = 0;
+    let maxWinAmt = 0, maxLossAmt = 0;      // biggest cumulative run $
+    let runWinAmt = 0, runLossAmt = 0;
+    list.forEach(t => {
+      const p = pnlOrZero(t);
+      if (p > 0) {
+        curWin++; curLoss = 0;
+        runWinAmt += p; runLossAmt = 0;
+        if (curWin > maxWinStreak) maxWinStreak = curWin;
+        if (runWinAmt > maxWinAmt) maxWinAmt = runWinAmt;
+      } else if (p < 0) {
+        curLoss++; curWin = 0;
+        runLossAmt += p; runWinAmt = 0;
+        if (curLoss > maxLossStreak) maxLossStreak = curLoss;
+        if (runLossAmt < maxLossAmt) maxLossAmt = runLossAmt;
+      } else {
+        curWin = 0; curLoss = 0; runWinAmt = 0; runLossAmt = 0;
+      }
+    });
+
+    const cards = [
+      { label: 'Max Win Streak', value: maxWinStreak + (maxWinStreak === 1 ? ' win' : ' wins'), sub: maxWinAmt > 0 ? '+' + fmtMoney(maxWinAmt, false, 0) + ' run' : '—', color: 'var(--green)', icon: 'M23 6l-9.5 9.5-5-5L1 18' },
+      { label: 'Max Loss Streak', value: maxLossStreak + (maxLossStreak === 1 ? ' loss' : ' losses'), sub: maxLossAmt < 0 ? fmtMoney(maxLossAmt, false, 0) + ' run' : '—', color: 'var(--red)', icon: 'M23 18l-9.5-9.5-5 5L1 6' },
+    ];
+
+    row.innerHTML = cards.map(c => `
+      <div class="an-streak-card">
+        <div class="an-streak-icon" style="color:${c.color};background:${c.color}18;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${c.icon}"/></svg>
+        </div>
+        <div>
+          <div class="an-streak-value" style="color:${c.color};">${c.value}</div>
+          <div class="an-streak-label">${c.label}</div>
+        </div>
+        <div class="an-streak-sub">${c.sub}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderLongShort() {
+    const body = $('longshort-body');
+    if (!body) return;
+    const list = getAnalyticsList().filter(t => isClosed(t));
+
+    function calc(side) {
+      const arr = list.filter(t => t.side === side);
+      const total = arr.reduce((s, t) => s + pnlOrZero(t), 0);
+      const wins = arr.filter(t => pnlOrZero(t) > 0).length;
+      const losses = arr.filter(t => pnlOrZero(t) < 0).length;
+      const decided = wins + losses;
+      const winRate = decided > 0 ? (wins / decided * 100) : null;
+      const rVals = arr.map(t => computeR(t)).filter(r => r !== null && isFinite(r));
+      const avgR = rVals.length ? rVals.reduce((a, b) => a + b, 0) / rVals.length : null;
+      return { count: arr.length, total, wins, losses, winRate, avgR };
+    }
+
+    const L = calc('LONG');
+    const S = calc('SHORT');
+    const maxAbs = Math.max(Math.abs(L.total), Math.abs(S.total), 1);
+
+    function sideBlock(name, d, accent) {
+      const barPct = Math.min(100, Math.abs(d.total) / maxAbs * 100);
+      const netColor = d.total > 0 ? 'var(--green)' : d.total < 0 ? 'var(--red)' : 'var(--text-3)';
+      return `
+        <div class="ls-block">
+          <div class="ls-head">
+            <span class="ls-name"><span class="ls-dot" style="background:${accent};"></span>${name}</span>
+            <span class="ls-count">${d.count} trade${d.count !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="ls-net" style="color:${netColor};">${d.count === 0 ? '—' : fmtMoney(d.total, true, 0)}</div>
+          <div class="ls-bar-track"><div class="ls-bar-fill" style="width:${barPct}%;background:${netColor};"></div></div>
+          <div class="ls-metrics">
+            <div><span>Win Rate</span><strong>${d.winRate === null ? '—' : d.winRate.toFixed(0) + '%'}</strong></div>
+            <div><span>Avg R</span><strong>${d.avgR === null ? '—' : (d.avgR >= 0 ? '+' : '') + d.avgR.toFixed(2) + 'R'}</strong></div>
+            <div><span>W / L</span><strong>${d.wins} / ${d.losses}</strong></div>
+          </div>
+        </div>`;
+    }
+
+    if (L.count === 0 && S.count === 0) {
+      body.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;">No closed trades yet.</div>`;
+      return;
+    }
+
+    // Verdict line: which side is your edge
+    let verdict = '';
+    if (L.count > 0 && S.count > 0) {
+      const better = L.total >= S.total ? 'Long' : 'Short';
+      const betterColor = L.total >= S.total ? 'var(--green)' : 'var(--blue)';
+      verdict = `<div class="ls-verdict">Your edge is on the <strong style="color:${betterColor};">${better}</strong> side</div>`;
+    }
+
+    body.innerHTML = `
+      <div class="ls-grid">
+        ${sideBlock('Long', L, 'var(--green)')}
+        ${sideBlock('Short', S, 'var(--blue)')}
+      </div>
+      ${verdict}
+    `;
+  }
+
   function renderStrategyCompareChart() {
     const ctx = $('strategy-compare-chart');
     const empty = $('strategy-compare-empty');
@@ -4999,16 +5133,12 @@
       renderCalendar();
     } else if (currentView === 'analytics') {
       renderAnalyticsStats();
-      renderMonthlyTable();
+      renderStreakRow();
+      renderLongShort();
       renderSymbolsTable();
       renderSessionPerformance();
       setTimeout(() => {
-        renderMonthlyChart();
-        renderYearlyChart();
         renderSymbolChart();
-        renderRMultipleChart();
-        renderDowChart();
-        renderHourChart();
         renderStrategyCompareChart();
       }, 50);
     }
@@ -5862,15 +5992,12 @@
     // Analytics period
     $('analytics-period').addEventListener('change', () => {
       renderAnalyticsStats();
-      renderMonthlyTable();
+      renderStreakRow();
+      renderLongShort();
       renderSymbolsTable();
       renderSessionPerformance();
-      renderMonthlyChart();
-      renderYearlyChart();
       renderSymbolChart();
-      renderRMultipleChart();
-      renderDowChart();
-      renderHourChart();
+      renderStrategyCompareChart();
     });
 
     // Calendar
