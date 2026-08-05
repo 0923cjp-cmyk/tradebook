@@ -1118,6 +1118,12 @@
   }
   .form-error.show { display: block; }
 
+  .pill-open {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    background: var(--blue-soft); color: var(--blue);
+  }
+
   /* ===== Custom symbol dropdown with logos ===== */
   .sym-dd { position: relative; }
   .sym-dd-trigger {
@@ -1974,6 +1980,7 @@
               <option value="win">Win</option>
               <option value="loss">Loss</option>
               <option value="breakeven">Breakeven</option>
+              <option value="open">Open</option>
             </select>
             <select class="filter-select" id="filter-asset">
               <option value="">All Assets</option>
@@ -2471,9 +2478,9 @@
           </div>
         </div>
 
-        <!-- Entry, Stop, TP, Size -->
+        <!-- Entry, Stop, TP, Exit, Size, Fee -->
         <div class="form-section">
-          <div class="form-section-title">Entry Setup</div>
+          <div class="form-section-title">Trade Setup</div>
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">Entry Price</label>
@@ -2488,7 +2495,12 @@
               <input type="number" class="form-input" id="f-tp" placeholder="0" step="any" min="0" />
             </div>
           </div>
-          <div class="form-grid" style="margin-top:12px;">
+          <div class="form-grid-3" style="margin-top:12px;">
+            <div class="form-group">
+              <label class="form-label">Exit Price <span class="form-hint-inline" style="color:var(--blue);">closes trade</span></label>
+              <input type="number" class="form-input" id="f-exit" placeholder="leave empty = still open" step="any" min="0" />
+              <span class="form-hint-inline" style="display:block;margin-top:4px;">Fill this to record P&amp;L</span>
+            </div>
             <div class="form-group">
               <label class="form-label">
                 <span id="qty-label">Size (Lots)</span>
@@ -2499,7 +2511,7 @@
             <div class="form-group">
               <label class="form-label">Fee ($) <span class="form-hint-inline">optional</span></label>
               <input type="number" class="form-input" id="f-fee" placeholder="0" step="any" min="0" value="0" />
-              <span class="form-hint-inline" style="display:block;margin-top:4px;">Commission / spread cost</span>
+              <span class="form-hint-inline" style="display:block;margin-top:4px;">Commission / spread</span>
             </div>
           </div>
 
@@ -2528,6 +2540,11 @@
               <span style="color:var(--green);">+2R</span>
               <span style="color:var(--green);">+5R+</span>
             </div>
+            <!-- Realized P&L preview (shown once exit is entered) -->
+            <div class="wiz-calc-row wiz-calc-row-hero" id="wz-realized-row" style="display:none;border-top:1px dashed var(--border);margin-top:8px;padding-top:10px;">
+              <span class="wiz-calc-lbl">Realized P&amp;L</span>
+              <span class="wiz-calc-val mono" id="calc-realized-pnl" style="color:var(--text-0);">—</span>
+            </div>
           </div>
         </div>
 
@@ -2541,11 +2558,10 @@
 
         </div><!-- /wz-step-1 -->
 
-        <!-- ========== Close Position & notes ========== -->
+        <!-- ========== Notes ========== -->
         <div id="wz-step-2">
 
-        <!-- Hidden exit fields (filled later via edit). Default: unclosed trade. -->
-        <input type="hidden" id="f-exit" value="0" />
+        <!-- Hidden exit-date (auto = entry date when exit price is set) -->
         <input type="hidden" id="f-exit-date" value="" />
         <input type="hidden" id="f-fee-shadow" value="0" />
 
@@ -2877,7 +2893,16 @@
   }
 
   // Compute PnL in USD - uses contract spec
+  // A trade is "closed" only if it has a real exit price (> 0).
+  // Open trades (exit unset / 0) must NOT be treated as a loss.
+  function isClosed(trade) {
+    const exit = Number(trade.exit);
+    return isFinite(exit) && exit > 0;
+  }
+
   function computePnL(trade) {
+    // Open position has no realized P&L yet.
+    if (!isClosed(trade)) return null;
     const qty = Number(trade.qty) || 0;
     const entry = Number(trade.entry) || 0;
     const exit = Number(trade.exit) || 0;
@@ -2885,9 +2910,6 @@
     const spec = getSpec(trade.symbol, trade.asset);
     const mult = trade.side === 'SHORT' ? -1 : 1;
     // gross pnl in quote currency: price_change * qty * contractSize * direction
-    // For USD-quoted instruments this equals USD. For JPY/CAD/CHF quote pairs it's in that currency.
-    // We approximate: for typical retail trader, most brokers settle in USD at market rate;
-    // For simplicity we treat quote-currency pnl as USD here, consistent with how retail brokers report it.
     const gross = (exit - entry) * qty * spec.contractSize * mult;
     return gross - fee;
   }
@@ -2899,32 +2921,38 @@
     const stop = Number(trade.stop) || 0;
     if (!stop || !entry || !qty) return 0;
     const spec = getSpec(trade.symbol, trade.asset);
-    // For LONG: risk is if price drops to stop. For SHORT: if price rises to stop.
-    // Risk should always be positive (the amount at risk if stopped).
     let riskPerUnit;
     if (trade.side === 'LONG') riskPerUnit = entry - stop;
     else riskPerUnit = stop - entry;
-    // If stop is on wrong side, risk is 0 (invalid)
     if (riskPerUnit <= 0) return 0;
     return riskPerUnit * qty * spec.contractSize;
   }
 
-  // R multiple = pnl / risk. If no stop, returns null.
+  // R multiple = pnl / risk. Null if open, or if no valid stop.
   function computeR(trade) {
+    if (!isClosed(trade)) return null;
     const risk = computeRisk(trade);
     if (!risk || risk <= 0) return null;
     const pnl = computePnL(trade);
+    if (pnl === null) return null;
     return pnl / risk;
   }
 
-  // Pips move (for forex)
+  // Pips move (for forex). Null if open.
   function computePips(trade) {
+    if (!isClosed(trade)) return null;
     const spec = getSpec(trade.symbol, trade.asset);
     if (spec.asset !== 'forex') return null;
     const entry = Number(trade.entry) || 0;
     const exit = Number(trade.exit) || 0;
     const mult = trade.side === 'SHORT' ? -1 : 1;
     return ((exit - entry) * mult) / spec.pipSize;
+  }
+
+  // For aggregation: open trades contribute 0 to realized totals.
+  function pnlOrZero(trade) {
+    const p = computePnL(trade);
+    return (p === null || !isFinite(p)) ? 0 : p;
   }
 
   function showToast(msg, type = 'info') {
@@ -3861,6 +3889,7 @@
     let sumWin = 0, sumLoss = 0;
     let largestWin = 0, largestLoss = 0;
     let sumR = 0, countR = 0;
+    let closedCount = 0, openCount = 0;
 
     // Sort by exit date to compute streaks and drawdown
     const sorted = [...list].sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate));
@@ -3870,6 +3899,9 @@
 
     sorted.forEach(t => {
       const pnl = computePnL(t);
+      // Skip open trades entirely from realized stats
+      if (pnl === null) { openCount++; return; }
+      closedCount++;
       total += pnl;
       cum += pnl;
       if (cum > peak) peak = cum;
@@ -3898,8 +3930,9 @@
     const avgWin = wins > 0 ? sumWin / wins : 0;
     const avgLoss = losses > 0 ? sumLoss / losses : 0;
     const profitFactor = sumLoss < 0 ? Math.abs(sumWin / sumLoss) : (sumWin > 0 ? Infinity : 0);
-    const winRate = n > 0 ? (wins / n) * 100 : 0;
-    const expectancy = n > 0 ? total / n : 0;
+    // Win rate & expectancy are based on CLOSED trades only
+    const winRate = closedCount > 0 ? (wins / closedCount) * 100 : 0;
+    const expectancy = closedCount > 0 ? total / closedCount : 0;
     const avgRR = avgLoss < 0 ? Math.abs(avgWin / avgLoss) : 0;
     const avgR = countR > 0 ? sumR / countR : 0;
 
@@ -3907,7 +3940,7 @@
     const byDay = {};
     list.forEach(t => {
       const day = fmtDateOnly(t.exitDate || t.entryDate);
-      byDay[day] = (byDay[day] || 0) + computePnL(t);
+      byDay[day] = (byDay[day] || 0) + pnlOrZero(t);
     });
     const dayVals = Object.values(byDay);
     const bestDay = dayVals.length ? Math.max(...dayVals) : 0;
@@ -3978,6 +4011,7 @@
     tbody.innerHTML = sorted.map(t => {
       const pnl = computePnL(t);
       const r = computeR(t);
+      const open = !isClosed(t);
       return `<tr>
         <td class="mono" style="font-size:12px; color:var(--text-2);">${fmtDateOnly(t.exitDate || t.entryDate)}</td>
         <td>
@@ -3989,9 +4023,9 @@
         <td><span class="side-badge ${t.side === 'LONG' ? 'long' : 'short'}">${t.side === 'LONG' ? 'Long' : 'Short'}</span></td>
         <td class="mono">${fmtNum(Number(t.qty), t.asset === 'forex' ? 2 : 0)}</td>
         <td class="mono">${fmtNum(Number(t.entry), 4)}</td>
-        <td class="mono">${fmtNum(Number(t.exit), 4)}</td>
+        <td class="mono">${open ? '<span style="color:var(--text-3);">—</span>' : fmtNum(Number(t.exit), 4)}</td>
         <td>${r !== null ? `<span class="r-badge ${r >= 0 ? 'pos' : 'neg'}">${fmtR(r)}</span>` : '<span style="color:var(--text-3);">—</span>'}</td>
-        <td class="pnl ${pnl >= 0 ? 'pos' : 'neg'}">${fmtMoney(pnl, true)}</td>
+        <td class="pnl ${pnl === null ? '' : (pnl >= 0 ? 'pos' : 'neg')}">${pnl === null ? '<span style="color:var(--text-3);font-weight:500;">Open</span>' : fmtMoney(pnl, true)}</td>
       </tr>`;
     }).join('');
   }
@@ -4015,6 +4049,9 @@
       }
       if (result) {
         const pnl = computePnL(t);
+        // Open trades have no result — exclude from win/loss/breakeven filters
+        if (pnl === null) return result === 'open';
+        if (result === 'open') return false;
         if (result === 'win' && pnl <= 0.0001) return false;
         if (result === 'loss' && pnl >= -0.0001) return false;
         if (result === 'breakeven' && Math.abs(pnl) > 0.0001) return false;
@@ -4025,8 +4062,8 @@
     list.sort((a, b) => {
       if (sort === 'date-desc') return new Date(b.exitDate || b.entryDate) - new Date(a.exitDate || a.entryDate);
       if (sort === 'date-asc') return new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate);
-      if (sort === 'pnl-desc') return computePnL(b) - computePnL(a);
-      if (sort === 'pnl-asc') return computePnL(a) - computePnL(b);
+      if (sort === 'pnl-desc') return pnlOrZero(b) - pnlOrZero(a);
+      if (sort === 'pnl-asc') return pnlOrZero(a) - pnlOrZero(b);
       if (sort === 'r-desc') return (computeR(b) ?? -999) - (computeR(a) ?? -999);
       if (sort === 'r-asc') return (computeR(a) ?? 999) - (computeR(b) ?? 999);
       return 0;
@@ -4052,6 +4089,7 @@
     tbody.innerHTML = list.map(t => {
       const pnl = computePnL(t);
       const r = computeR(t);
+      const open = !isClosed(t);
       const priceDec = t.asset === 'forex' ? 5 : 4;
       const qtyDec = t.asset === 'forex' ? 2 : 0;
       return `<tr>
@@ -4066,9 +4104,9 @@
         <td class="mono">${fmtNum(Number(t.qty), qtyDec)}</td>
         <td class="mono">${fmtNum(Number(t.entry), priceDec)}</td>
         <td class="mono" style="color:var(--text-2);">${t.stop ? fmtNum(Number(t.stop), priceDec) : '—'}</td>
-        <td class="mono">${fmtNum(Number(t.exit), priceDec)}</td>
+        <td class="mono">${open ? '<span style="color:var(--text-3);">—</span>' : fmtNum(Number(t.exit), priceDec)}</td>
         <td>${r !== null ? `<span class="r-badge ${r >= 0 ? 'pos' : 'neg'}">${fmtR(r)}</span>` : '<span style="color:var(--text-3);">—</span>'}</td>
-        <td class="pnl ${pnl >= 0 ? 'pos' : 'neg'}">${fmtMoney(pnl, true)}</td>
+        <td class="pnl ${pnl === null ? '' : (pnl >= 0 ? 'pos' : 'neg')}">${pnl === null ? '<span class="pill-open">Open</span>' : fmtMoney(pnl, true)}</td>
         <td>
           <div class="row-actions">
             <button class="icon-btn" title="View" data-action="view" data-id="${t.id}">
@@ -4117,7 +4155,7 @@
     const labels = ['Start'];
     const data = [0];
     sorted.forEach(t => {
-      cum += computePnL(t);
+      cum += pnlOrZero(t);
       labels.push(fmtDateOnly(t.exitDate || t.entryDate));
       data.push(Number(cum.toFixed(2)));
     });
@@ -4222,7 +4260,7 @@
     destroyChart('symbol');
     const list = getAnalyticsList();
     const bySym = {};
-    list.forEach(t => { bySym[t.symbol] = (bySym[t.symbol] || 0) + computePnL(t); });
+    list.forEach(t => { bySym[t.symbol] = (bySym[t.symbol] || 0) + pnlOrZero(t); });
     const entries = Object.entries(bySym).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 12);
     charts.symbol = new Chart(ctx, {
       type: 'bar',
@@ -4262,7 +4300,7 @@
       const d = new Date(t.exitDate || t.entryDate);
       if (isNaN(d.getTime())) return;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      byMonth[key] = (byMonth[key] || 0) + computePnL(t);
+      byMonth[key] = (byMonth[key] || 0) + pnlOrZero(t);
     });
     const keys = Object.keys(byMonth).sort();
     charts.monthly = new Chart(ctx, {
@@ -4302,7 +4340,7 @@
       const d = new Date(t.exitDate || t.entryDate);
       if (isNaN(d.getTime())) return;
       const key = String(d.getFullYear());
-      byYear[key] = (byYear[key] || 0) + computePnL(t);
+      byYear[key] = (byYear[key] || 0) + pnlOrZero(t);
     });
     const keys = Object.keys(byYear).sort();
     charts.yearly = new Chart(ctx, {
@@ -4389,7 +4427,7 @@
     list.forEach(t => {
       const d = new Date(t.exitDate || t.entryDate);
       if (isNaN(d.getTime())) return;
-      dowSum[d.getDay()] += computePnL(t);
+      dowSum[d.getDay()] += pnlOrZero(t);
     });
     charts.dow = new Chart(ctx, {
       type: 'bar',
@@ -4427,7 +4465,7 @@
     list.forEach(t => {
       const d = new Date(t.entryDate || t.exitDate);
       if (isNaN(d.getTime())) return;
-      hourSum[d.getHours()] += computePnL(t);
+      hourSum[d.getHours()] += pnlOrZero(t);
     });
     const labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
     charts.hour = new Chart(ctx, {
@@ -4521,6 +4559,7 @@
       const sym = t.symbol || 'Unknown';
       if (!buckets[k].bySymbol[sym]) buckets[k].bySymbol[sym] = { pnl: 0, count: 0, wins: 0 };
       const pnl = computePnL(t);
+      if (pnl === null) return; // skip open trades in session stats
       buckets[k].bySymbol[sym].pnl += pnl;
       buckets[k].bySymbol[sym].count += 1;
       if (pnl > 0) buckets[k].bySymbol[sym].wins += 1;
@@ -4529,20 +4568,20 @@
     // Find total (for contribution %) and best session (positive pnl with max)
     const totalPnl = SESSIONS.reduce((acc, s) => {
       const tr = buckets[s.key].trades;
-      return acc + tr.reduce((a, t) => a + computePnL(t), 0);
+      return acc + tr.reduce((a, t) => a + pnlOrZero(t), 0);
     }, 0);
     let bestKey = null;
     let bestPnl = -Infinity;
     SESSIONS.forEach(s => {
-      const p = buckets[s.key].trades.reduce((a, t) => a + computePnL(t), 0);
+      const p = buckets[s.key].trades.reduce((a, t) => a + pnlOrZero(t), 0);
       if (p > 0 && p > bestPnl) { bestPnl = p; bestKey = s.key; }
     });
 
     grid.innerHTML = SESSIONS.map(s => {
       const bucket = buckets[s.key];
       const count = bucket.trades.length;
-      const sPnl = bucket.trades.reduce((a, t) => a + computePnL(t), 0);
-      const wins = bucket.trades.filter(t => computePnL(t) > 0).length;
+      const sPnl = bucket.trades.reduce((a, t) => a + pnlOrZero(t), 0);
+      const wins = bucket.trades.filter(t => pnlOrZero(t) > 0).length;
       const winRate = count > 0 ? (wins / count * 100) : 0;
       const pctOfTotal = (totalPnl !== 0) ? Math.round((sPnl / totalPnl) * 100) : 0;
       const isBest = s.key === bestKey;
@@ -4655,8 +4694,8 @@
       bySym[t.symbol].push(t);
     });
     const entries = Object.entries(bySym).sort((a, b) => {
-      const totalA = a[1].reduce((s, t) => s + computePnL(t), 0);
-      const totalB = b[1].reduce((s, t) => s + computePnL(t), 0);
+      const totalA = a[1].reduce((s, t) => s + pnlOrZero(t), 0);
+      const totalB = b[1].reduce((s, t) => s + pnlOrZero(t), 0);
       return totalB - totalA;
     });
     const tbody = $('symbols-tbody');
@@ -4689,7 +4728,7 @@
     const byDayCount = {};
     trades.forEach(t => {
       const key = fmtDateOnly(t.exitDate || t.entryDate);
-      byDay[key] = (byDay[key] || 0) + computePnL(t);
+      byDay[key] = (byDay[key] || 0) + pnlOrZero(t);
       byDayCount[key] = (byDayCount[key] || 0) + 1;
     });
 
@@ -4809,7 +4848,7 @@
     }
     wkList.innerHTML = wkKeys.map(k => {
       const list = weeks[k];
-      const total = list.reduce((s, t) => s + computePnL(t), 0);
+      const total = list.reduce((s, t) => s + pnlOrZero(t), 0);
       const saturday = new Date(k);
       saturday.setDate(saturday.getDate() + 6);
       const range = `${k.slice(5)} ~ ${fmtDateOnly(saturday.toISOString()).slice(5)}`;
@@ -5071,7 +5110,7 @@
       $('f-entry').value = t.entry ?? '';
       $('f-stop').value = t.stop ?? '';
       if ($('f-tp')) $('f-tp').value = t.tp ?? '';
-      $('f-exit').value = t.exit ?? '';
+      $('f-exit').value = (t.exit && Number(t.exit) > 0) ? t.exit : '';
       $('f-strategy').value = t.strategy || '';
       window._tradeImages = Array.isArray(t.images) ? [...t.images] : [];
       renderImagePreviews();
@@ -5176,15 +5215,40 @@
       riskEls.forEach(el => { el.textContent = text; el.style.color = color; });
     };
 
-    // ==== Step 2 P&L (needs exit) ====
+    // ==== Realized P&L preview (only when a valid exit is entered) ====
+    const realizedRow = $('wz-realized-row');
+    const realizedEl = $('calc-realized-pnl');
+    if (realizedRow && realizedEl) {
+      const hasExit = !isNaN(t.exit) && t.exit > 0;
+      const canCompute = t.symbol && !isNaN(t.qty) && !isNaN(t.entry) && t.qty > 0 && t.entry > 0 && hasExit;
+      if (canCompute) {
+        const pnl = computePnL(t);
+        if (pnl !== null && isFinite(pnl)) {
+          realizedRow.style.display = '';
+          realizedEl.textContent = fmtMoney(pnl, true);
+          realizedEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        } else {
+          realizedRow.style.display = 'none';
+        }
+      } else {
+        realizedRow.style.display = 'none';
+      }
+    }
+
+    // ==== Legacy step-2 P&L element (if present) ====
     if (pnlEl) {
-      if (!t.symbol || isNaN(t.qty) || isNaN(t.entry) || isNaN(t.exit) || t.qty <= 0 || t.entry <= 0 || t.exit < 0) {
+      if (!t.symbol || isNaN(t.qty) || isNaN(t.entry) || isNaN(t.exit) || t.qty <= 0 || t.entry <= 0 || t.exit <= 0) {
         pnlEl.textContent = '—';
         pnlEl.style.color = 'var(--text-0)';
       } else {
         const pnl = computePnL(t);
-        pnlEl.textContent = fmtMoney(pnl, true);
-        pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        if (pnl !== null && isFinite(pnl)) {
+          pnlEl.textContent = fmtMoney(pnl, true);
+          pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        } else {
+          pnlEl.textContent = '—';
+          pnlEl.style.color = 'var(--text-0)';
+        }
       }
     }
 
@@ -5216,10 +5280,14 @@
         // Reward uses same formula as P&L but with TP as "exit"
         const rewardTrade = Object.assign({}, t, { exit: t.tp });
         rewardValue = computePnL(rewardTrade);
-        // But Reward should reflect the TP hit without fees muddying it — keep it pure
-        // Actually keep fee in — it's a realistic preview.
-        rewardEl.textContent = fmtMoney(rewardValue, true);
-        rewardEl.style.color = rewardValue >= 0 ? 'var(--green)' : 'var(--red)';
+        if (rewardValue === null || !isFinite(rewardValue)) {
+          rewardEl.textContent = '—';
+          rewardEl.style.color = 'var(--text-0)';
+          rewardValue = null;
+        } else {
+          rewardEl.textContent = fmtMoney(rewardValue, true);
+          rewardEl.style.color = rewardValue >= 0 ? 'var(--green)' : 'var(--red)';
+        }
       }
     }
 
@@ -5314,8 +5382,8 @@
     if (!entryDate) return fail('Select entry time');
     if (isNaN(raw.qty) || raw.qty <= 0) return fail('Size must be greater than 0');
     if (isNaN(raw.entry) || raw.entry <= 0) return fail('Entry price must be > 0');
-    // Exit is optional here (set later); if provided, must be >= 0
-    if (!isNaN(raw.exit) && raw.exit < 0) return fail('Exit price must be ≥ 0');
+    // Exit is optional (empty = still open). If provided, must be > 0.
+    if (!isNaN(raw.exit) && raw.exit <= 0) return fail('Exit price must be greater than 0 (or leave empty for open position)');
     if (raw.fee < 0) return fail('Fee cannot be negative');
     if (raw.side !== 'LONG' && raw.side !== 'SHORT') return fail('Invalid direction');
     // Validate stop if provided
@@ -5385,7 +5453,7 @@
       <div class="detail-row"><span class="detail-label">Fee</span><span class="detail-value mono">${fmtMoney(Number(t.fee) || 0)}</span></div>
       ${pips !== null ? `<div class="detail-row"><span class="detail-label">Pips</span><span class="detail-value mono" style="color:${pips >= 0 ? 'var(--green)' : 'var(--red)'};">${(pips >= 0 ? '+' : '') + pips.toFixed(1)} pips</span></div>` : ''}
       <div class="detail-row"><span class="detail-label">Risk</span><span class="detail-value mono">${risk > 0 ? fmtMoney(-risk) : '—'}</span></div>
-      <div class="detail-row"><span class="detail-label">P&L</span><span class="detail-value pnl ${pnl >= 0 ? 'pos' : 'neg'}">${fmtMoney(pnl, true)}</span></div>
+      <div class="detail-row"><span class="detail-label">P&L</span><span class="detail-value pnl ${pnl === null ? '' : (pnl >= 0 ? 'pos' : 'neg')}">${pnl === null ? '<span class="pill-open">Open position</span>' : fmtMoney(pnl, true)}</span></div>
       <div class="detail-row"><span class="detail-label">R Multiple</span><span class="detail-value">${r !== null ? `<span class="r-badge ${r >= 0 ? 'pos' : 'neg'}">${fmtR(r)}</span>` : '—'}</span></div>
       <div class="detail-row"><span class="detail-label">Strategy</span><span class="detail-value">${escapeHtml(t.strategy) || '—'}</span></div>
       <div class="detail-row"><span class="detail-label">Mood</span><span class="detail-value">${moodEmoji[t.mood] || '😐'} (${t.mood || 3}/5)</span></div>
