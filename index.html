@@ -746,8 +746,14 @@
 
   /* ============ Main ============ */
   .main {
-    padding: 24px 28px 60px;
+    padding: 28px 40px 80px;
     overflow-x: hidden;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media (max-width: 1400px) {
+    .main { padding: 24px 28px 60px; }
   }
 
   .topbar {
@@ -758,15 +764,15 @@
     gap: 16px;
   }
   .page-title {
-    font-size: 22px;
-    font-weight: 600;
+    font-size: 26px;
+    font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--text-0);
   }
   .page-subtitle {
     color: var(--text-2);
-    font-size: 13px;
-    margin-top: 2px;
+    font-size: 14px;
+    margin-top: 3px;
   }
   .topbar-actions { display: flex; gap: 8px; align-items: center; }
 
@@ -1233,35 +1239,22 @@
     font-weight: 400;
   }
 
-  /* ===== Analytics: streak cards ===== */
-  .an-streak-row {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px;
+  /* ===== Strategy card: win/loss streak row ===== */
+  .strat-streak {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
   }
-  .an-streak-card {
-    display: flex; align-items: center; gap: 14px;
-    background: var(--bg-1); border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px 18px;
-    transition: border-color 0.12s;
+  .strat-streak-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
   }
-  .an-streak-card:hover { border-color: var(--border-strong); }
-  .an-streak-icon {
-    width: 38px; height: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .an-streak-value {
-    font-size: 19px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.02em; line-height: 1.1;
-  }
-  .an-streak-label {
-    font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: 3px;
-    text-transform: uppercase; letter-spacing: 0.04em;
-  }
-  .an-streak-sub {
-    margin-left: auto; font-size: 12px; color: var(--text-3);
-    font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  .strat-streak-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .strat-streak-label { color: var(--text-2); font-weight: 500; }
+  .strat-streak-val {
+    margin-left: auto; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
   }
 
-  /* ===== Analytics: Long vs Short ===== */
   .ls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .ls-block { padding: 4px 2px; }
   .ls-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -1288,7 +1281,6 @@
     font-size: 12px; color: var(--text-2); text-align: center;
   }
   @media (max-width: 640px) {
-    .an-streak-row { grid-template-columns: 1fr; }
     .ls-grid { grid-template-columns: 1fr; }
   }
 
@@ -1659,42 +1651,41 @@
   /* ============ Calendar (compact) ============ */
   .calendar-layout {
     display: grid;
-    grid-template-columns: 1fr 280px;
-    gap: 12px;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
   }
-  .calendar-wrap { padding: 16px; }
+  .calendar-wrap { padding: 22px; }
   .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
   }
-  .calendar-month { font-size: 15px; font-weight: 700; }
+  .calendar-month { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
   .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr) 0.8fr;
-    gap: 4px;
+    grid-template-columns: repeat(7, 1fr) 0.85fr;
+    gap: 6px;
   }
   .calendar-week {
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 5px 6px;
+    border-radius: 8px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    font-size: 10px;
+    font-size: 11px;
     background: var(--bg-2);
-    min-height: 62px;
-    max-height: 72px;
+    min-height: 96px;
   }
   .calendar-week.profit { background: linear-gradient(135deg, var(--green-soft), transparent); border-color: var(--green-border); }
   .calendar-week.loss { background: linear-gradient(135deg, var(--red-soft), transparent); border-color: var(--red-border); }
-  .calendar-week .wlbl { font-size: 9px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .calendar-week .wlbl { font-size: 9px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
   .calendar-week .wpnl {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1703,11 +1694,11 @@
   }
   .calendar-week.profit .wpnl { color: var(--green); }
   .calendar-week.loss .wpnl { color: var(--red); }
-  .calendar-week .wcount { font-size: 9px; color: var(--text-3); margin-top: 1px; }
+  .calendar-week .wcount { font-size: 10px; color: var(--text-3); margin-top: 2px; }
   .calendar-dow {
     text-align: center;
-    padding: 4px;
-    font-size: 10px;
+    padding: 8px 4px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--text-3);
     text-transform: uppercase;
@@ -1715,34 +1706,35 @@
   }
   .calendar-day {
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 5px 6px;
+    border-radius: 8px;
+    padding: 9px 11px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-2);
     position: relative;
     background: var(--bg-2);
-    min-height: 62px;
-    max-height: 72px;
+    min-height: 96px;
+    transition: border-color 0.12s, transform 0.12s;
   }
+  .calendar-day:not(.other):hover { border-color: var(--border-strong); transform: translateY(-1px); }
   .calendar-day.other { opacity: 0.3; }
-  .calendar-day.today { border-color: var(--accent); }
+  .calendar-day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .calendar-day.profit { background: linear-gradient(135deg, var(--green-soft), transparent); border-color: var(--green-border); }
   .calendar-day.loss { background: linear-gradient(135deg, var(--red-soft), transparent); border-color: var(--red-border); }
-  .calendar-day .dnum { font-weight: 600; color: var(--text-1); font-size: 11px; }
+  .calendar-day .dnum { font-weight: 600; color: var(--text-1); font-size: 13px; }
   .calendar-day .dpnl {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .calendar-day.profit .dpnl { color: var(--green); }
   .calendar-day.loss .dpnl { color: var(--red); }
-  .calendar-day .dcount { font-size: 9px; color: var(--text-3); }
+  .calendar-day .dcount { font-size: 10px; color: var(--text-3); margin-top: 2px; }
 
   /* Weekly summary */
   .week-summary {
@@ -2141,9 +2133,6 @@
 
       <div class="stats-grid" id="analytics-stats"></div>
       <div class="stats-grid" id="analytics-stats-2"></div>
-
-      <!-- Streak & consistency row -->
-      <div class="an-streak-row" id="an-streak-row"></div>
 
       <!-- Multi-strategy cumulative P&L comparison -->
       <div class="panel">
@@ -3217,6 +3206,7 @@
       const avgRColor = avgR === null ? 'var(--text-3)' : (avgR >= 1 ? 'var(--green)' : avgR >= 0 ? 'var(--yellow)' : 'var(--red)');
       const pfColor = profitFactor === null ? 'var(--text-3)' : (profitFactor >= 1.5 ? 'var(--green)' : profitFactor >= 1 ? 'var(--yellow)' : 'var(--red)');
       const openCount = tradesWithStrat.length - closedTrades.length;
+      const streaks = calcStreaks(closedTrades);
 
       return `
         <div class="strat-card" style="--strat-color:${s.color}">
@@ -3270,6 +3260,18 @@
             <div class="strat-stat">
               <div class="strat-stat-label">Worst</div>
               <div class="strat-stat-value" style="color:${worstTrade !== null && worstTrade < 0 ? 'var(--red)' : 'var(--text-3)'}">${worstTrade === null ? '—' : fmtMoney(worstTrade, false, 0)}</div>
+            </div>
+          </div>
+          <div class="strat-streak">
+            <div class="strat-streak-item">
+              <span class="strat-streak-dot" style="background:var(--green);"></span>
+              <span class="strat-streak-label">Max Win Streak</span>
+              <span class="strat-streak-val" style="color:var(--green);">${streaks.maxWin > 0 ? streaks.maxWin + 'W' : '—'}</span>
+            </div>
+            <div class="strat-streak-item">
+              <span class="strat-streak-dot" style="background:var(--red);"></span>
+              <span class="strat-streak-label">Max Loss Streak</span>
+              <span class="strat-streak-val" style="color:var(--red);">${streaks.maxLoss > 0 ? streaks.maxLoss + 'L' : '—'}</span>
             </div>
           </div>
           `}
@@ -4338,52 +4340,19 @@
     });
   }
 
-  // Multi-strategy cumulative P&L comparison
-  // Max consecutive winning / losing streaks + Long vs Short breakdown
-  function renderStreakRow() {
-    const row = $('an-streak-row');
-    if (!row) return;
-    const list = getAnalyticsList().filter(t => isClosed(t))
+  // Compute max consecutive win/loss streaks for a list of closed trades.
+  // Returns { maxWin, maxLoss } — counts only.
+  function calcStreaks(tradeList) {
+    const list = tradeList.filter(t => isClosed(t))
       .sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate));
-
-    let maxWinStreak = 0, maxLossStreak = 0;
-    let curWin = 0, curLoss = 0;
-    let maxWinAmt = 0, maxLossAmt = 0;      // biggest cumulative run $
-    let runWinAmt = 0, runLossAmt = 0;
+    let maxWin = 0, maxLoss = 0, curWin = 0, curLoss = 0;
     list.forEach(t => {
       const p = pnlOrZero(t);
-      if (p > 0) {
-        curWin++; curLoss = 0;
-        runWinAmt += p; runLossAmt = 0;
-        if (curWin > maxWinStreak) maxWinStreak = curWin;
-        if (runWinAmt > maxWinAmt) maxWinAmt = runWinAmt;
-      } else if (p < 0) {
-        curLoss++; curWin = 0;
-        runLossAmt += p; runWinAmt = 0;
-        if (curLoss > maxLossStreak) maxLossStreak = curLoss;
-        if (runLossAmt < maxLossAmt) maxLossAmt = runLossAmt;
-      } else {
-        curWin = 0; curLoss = 0; runWinAmt = 0; runLossAmt = 0;
-      }
+      if (p > 0) { curWin++; curLoss = 0; if (curWin > maxWin) maxWin = curWin; }
+      else if (p < 0) { curLoss++; curWin = 0; if (curLoss > maxLoss) maxLoss = curLoss; }
+      else { curWin = 0; curLoss = 0; }
     });
-
-    const cards = [
-      { label: 'Max Win Streak', value: maxWinStreak + (maxWinStreak === 1 ? ' win' : ' wins'), sub: maxWinAmt > 0 ? '+' + fmtMoney(maxWinAmt, false, 0) + ' run' : '—', color: 'var(--green)', icon: 'M23 6l-9.5 9.5-5-5L1 18' },
-      { label: 'Max Loss Streak', value: maxLossStreak + (maxLossStreak === 1 ? ' loss' : ' losses'), sub: maxLossAmt < 0 ? fmtMoney(maxLossAmt, false, 0) + ' run' : '—', color: 'var(--red)', icon: 'M23 18l-9.5-9.5-5 5L1 6' },
-    ];
-
-    row.innerHTML = cards.map(c => `
-      <div class="an-streak-card">
-        <div class="an-streak-icon" style="color:${c.color};background:${c.color}18;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${c.icon}"/></svg>
-        </div>
-        <div>
-          <div class="an-streak-value" style="color:${c.color};">${c.value}</div>
-          <div class="an-streak-label">${c.label}</div>
-        </div>
-        <div class="an-streak-sub">${c.sub}</div>
-      </div>
-    `).join('');
+    return { maxWin, maxLoss };
   }
 
   function renderLongShort() {
@@ -5133,7 +5102,6 @@
       renderCalendar();
     } else if (currentView === 'analytics') {
       renderAnalyticsStats();
-      renderStreakRow();
       renderLongShort();
       renderSymbolsTable();
       renderSessionPerformance();
@@ -5992,7 +5960,6 @@
     // Analytics period
     $('analytics-period').addEventListener('change', () => {
       renderAnalyticsStats();
-      renderStreakRow();
       renderLongShort();
       renderSymbolsTable();
       renderSessionPerformance();
