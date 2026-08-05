@@ -2082,6 +2082,18 @@
       <div class="stats-grid" id="analytics-stats"></div>
       <div class="stats-grid" id="analytics-stats-2"></div>
 
+      <!-- Multi-strategy cumulative P&L comparison -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Strategy Comparison · Cumulative P&L</div>
+          <div class="session-sub">Each line = one strategy's equity curve over closed trades</div>
+        </div>
+        <div class="chart-container tall"><canvas id="strategy-compare-chart"></canvas></div>
+        <div id="strategy-compare-empty" style="display:none;padding:24px 18px;text-align:center;color:var(--text-3);font-size:13px;">
+          No closed trades tagged with a strategy yet. Tag your trades with a strategy to compare their curves here.
+        </div>
+      </div>
+
       <div class="grid-2-eq">
         <div class="panel">
           <div class="panel-header"><div class="panel-title">Monthly P&L</div></div>
@@ -2443,8 +2455,8 @@
             <div class="form-group">
               <label class="form-label">Asset Type</label>
               <select class="form-select" id="f-asset">
-                <option value="forex">Forex</option>
                 <option value="futures">Futures</option>
+                <option value="forex">Forex</option>
                 <option value="stock">Stock / ETF</option>
                 <option value="crypto">Crypto</option>
               </select>
@@ -2495,11 +2507,14 @@
               <input type="number" class="form-input" id="f-tp" placeholder="0" step="any" min="0" />
             </div>
           </div>
-          <div class="form-grid-3" style="margin-top:12px;">
+          <div class="form-grid" style="margin-top:12px;">
             <div class="form-group">
               <label class="form-label">Exit Price <span class="form-hint-inline" style="color:var(--blue);">closes trade</span></label>
-              <input type="number" class="form-input" id="f-exit" placeholder="leave empty = still open" step="any" min="0" />
-              <span class="form-hint-inline" style="display:block;margin-top:4px;">Fill this to record P&amp;L</span>
+              <div style="display:flex;gap:6px;">
+                <input type="number" class="form-input" id="f-exit" placeholder="leave empty = still open" step="any" min="0" style="flex:1;"/>
+                <button type="button" class="btn btn-sm" id="f-exit-be" title="Break-even: set exit = entry" style="white-space:nowrap;">BE</button>
+              </div>
+              <span class="form-hint-inline" style="display:block;margin-top:4px;">Fill to record P&amp;L · BE = break-even</span>
             </div>
             <div class="form-group">
               <label class="form-label">
@@ -2508,12 +2523,9 @@
               <input type="number" class="form-input" id="f-qty" placeholder="1" step="any" min="0" required />
               <span class="form-hint-inline" id="qty-hint" style="display:block;margin-top:4px;">1 std lot = 100,000 units</span>
             </div>
-            <div class="form-group">
-              <label class="form-label">Fee ($) <span class="form-hint-inline">optional</span></label>
-              <input type="number" class="form-input" id="f-fee" placeholder="0" step="any" min="0" value="0" />
-              <span class="form-hint-inline" style="display:block;margin-top:4px;">Commission / spread</span>
-            </div>
           </div>
+          <!-- Fee removed from UI; kept as hidden zero for calc compatibility -->
+          <input type="hidden" id="f-fee" value="0" />
 
           <!-- Live trade setup calculator -->
           <div class="wiz-calc" id="wz-calc">
@@ -3155,29 +3167,32 @@
     }
     
     grid.innerHTML = strategies.map(s => {
-      // Compute stats from trades using this strategy
+      // Compute stats from trades using this strategy (closed trades only)
       const tradesWithStrat = trades.filter(t => t.strategy === s.name);
-      const total = tradesWithStrat.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
-      const wins = tradesWithStrat.filter(t => (Number(t.pnl) || 0) > 0).length;
-      const losses = tradesWithStrat.filter(t => (Number(t.pnl) || 0) < 0).length;
+      const closedTrades = tradesWithStrat.filter(t => isClosed(t));
+      const total = closedTrades.reduce((sum, t) => sum + pnlOrZero(t), 0);
+      const wins = closedTrades.filter(t => pnlOrZero(t) > 0).length;
+      const losses = closedTrades.filter(t => pnlOrZero(t) < 0).length;
       const decidedTrades = wins + losses; // breakeven 不计入胜率
       const winRate = decidedTrades > 0 ? (wins / decidedTrades * 100).toFixed(0) : '—';
       // Extended metrics
-      const rValues = tradesWithStrat.map(t => computeR(t)).filter(r => r !== null && isFinite(r));
+      const rValues = closedTrades.map(t => computeR(t)).filter(r => r !== null && isFinite(r));
       const avgR = rValues.length > 0 ? (rValues.reduce((a,b) => a+b, 0) / rValues.length) : null;
-      const pnls = tradesWithStrat.map(t => Number(t.pnl) || 0);
+      const pnls = closedTrades.map(t => pnlOrZero(t));
       const bestTrade = pnls.length > 0 ? Math.max(...pnls) : null;
       const worstTrade = pnls.length > 0 ? Math.min(...pnls) : null;
-      // Profit factor: sum of wins / |sum of losses|
-      const sumWins = tradesWithStrat.filter(t => (Number(t.pnl) || 0) > 0).reduce((s,t) => s + Number(t.pnl), 0);
-      const sumLosses = tradesWithStrat.filter(t => (Number(t.pnl) || 0) < 0).reduce((s,t) => s + Number(t.pnl), 0);
+      // Profit factor
+      const sumWins = closedTrades.filter(t => pnlOrZero(t) > 0).reduce((sum,t) => sum + pnlOrZero(t), 0);
+      const sumLosses = closedTrades.filter(t => pnlOrZero(t) < 0).reduce((sum,t) => sum + pnlOrZero(t), 0);
       const profitFactor = sumLosses < 0 ? (sumWins / Math.abs(sumLosses)) : (sumWins > 0 ? Infinity : null);
-      
+
+      const hasData = closedTrades.length > 0;
       const winRateColor = winRate === '—' ? 'var(--text-3)' : (winRate >= 50 ? 'var(--green)' : winRate >= 40 ? 'var(--yellow)' : 'var(--red)');
       const netColor = total > 0 ? 'var(--green)' : total < 0 ? 'var(--red)' : 'var(--text-3)';
       const avgRColor = avgR === null ? 'var(--text-3)' : (avgR >= 1 ? 'var(--green)' : avgR >= 0 ? 'var(--yellow)' : 'var(--red)');
       const pfColor = profitFactor === null ? 'var(--text-3)' : (profitFactor >= 1.5 ? 'var(--green)' : profitFactor >= 1 ? 'var(--yellow)' : 'var(--red)');
-      
+      const openCount = tradesWithStrat.length - closedTrades.length;
+
       return `
         <div class="strat-card" style="--strat-color:${s.color}">
           <div class="strat-card-head">
@@ -3192,10 +3207,17 @@
             </div>
           </div>
           <p class="strat-desc">${escapeHtml(s.description) || '<em style="color:var(--text-3)">No description</em>'}</p>
+          ${!hasData ? `
+          <div class="strat-empty">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>
+            <div>${tradesWithStrat.length === 0 ? 'No trades tagged with this strategy yet' : openCount + ' open trade' + (openCount>1?'s':'') + ' · no closed P&L yet'}</div>
+            <div class="strat-empty-hint">Tag a trade with "${escapeHtml(s.name)}" in the trade form to see stats here.</div>
+          </div>
+          ` : `
           <div class="strat-stats-primary">
             <div class="strat-stat-hero">
               <div class="strat-stat-label">Net P&amp;L</div>
-              <div class="strat-stat-big" style="color:${netColor}">${total === 0 && tradesWithStrat.length === 0 ? '—' : fmtMoney(total, true, 0)}</div>
+              <div class="strat-stat-big" style="color:${netColor}">${fmtMoney(total, true, 0)}</div>
             </div>
             <div class="strat-stat-hero">
               <div class="strat-stat-label">Win Rate</div>
@@ -3206,7 +3228,7 @@
           <div class="strat-stats-secondary">
             <div class="strat-stat">
               <div class="strat-stat-label">Trades</div>
-              <div class="strat-stat-value">${tradesWithStrat.length}</div>
+              <div class="strat-stat-value">${closedTrades.length}${openCount > 0 ? `<span style="font-size:10px;color:var(--text-3);"> +${openCount} open</span>` : ''}</div>
             </div>
             <div class="strat-stat">
               <div class="strat-stat-label">Avg R</div>
@@ -3225,6 +3247,7 @@
               <div class="strat-stat-value" style="color:${worstTrade !== null && worstTrade < 0 ? 'var(--red)' : 'var(--text-3)'}">${worstTrade === null ? '—' : fmtMoney(worstTrade, false, 0)}</div>
             </div>
           </div>
+          `}
         </div>
       `;
     }).join('');
@@ -4290,6 +4313,105 @@
     });
   }
 
+  // Multi-strategy cumulative P&L comparison
+  function renderStrategyCompareChart() {
+    const ctx = $('strategy-compare-chart');
+    const empty = $('strategy-compare-empty');
+    if (!ctx) return;
+    destroyChart('stratCompare');
+
+    const list = getAnalyticsList();
+    // Distinct strategy names that actually have closed trades
+    const stratNames = [...new Set(
+      list.filter(t => isClosed(t) && t.strategy && t.strategy.trim())
+          .map(t => t.strategy)
+    )];
+
+    if (stratNames.length === 0) {
+      ctx.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    ctx.style.display = '';
+    if (empty) empty.style.display = 'none';
+
+    // Palette (from strategy colors if available, else fallback)
+    const palette = ['#2962FF', '#089981', '#F23645', '#FF9800', '#9C27B0', '#00BCD4', '#E91E63', '#8BC34A'];
+    const stratColorMap = {};
+    strategies.forEach(s => { if (s.name) stratColorMap[s.name] = s.color; });
+
+    // For each strategy, build cumulative P&L series ordered by trade time,
+    // plotted against a shared trade-index axis (# of closed trades).
+    const datasets = [];
+    let maxLen = 0;
+
+    stratNames.forEach((name, i) => {
+      const stratTrades = list
+        .filter(t => t.strategy === name && isClosed(t))
+        .sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate));
+      let cum = 0;
+      const data = [0]; // start at 0
+      stratTrades.forEach(t => { cum += pnlOrZero(t); data.push(cum); });
+      if (data.length > maxLen) maxLen = data.length;
+      const color = stratColorMap[name] || palette[i % palette.length];
+      datasets.push({
+        label: name,
+        data,
+        borderColor: color,
+        backgroundColor: color + '22',
+        borderWidth: 2,
+        tension: 0.25,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: false,
+      });
+    });
+
+    const labels = Array.from({ length: maxLen }, (_, i) => i === 0 ? 'Start' : `#${i}`);
+
+    charts.stratCompare = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-1').trim(), font: { size: 11 }, usePointStyle: true, pointStyle: 'line', boxWidth: 18 }
+          },
+          tooltip: {
+            backgroundColor: chartTooltipBg(),
+            borderColor: chartTooltipBorder(),
+            borderWidth: 1,
+            titleColor: chartTooltipText(),
+            bodyColor: chartTooltipText(),
+            padding: 10,
+            callbacks: {
+              label: (c) => `${c.dataset.label}: ${fmtMoney(c.parsed.y, true)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: chartGrid() },
+            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-3').trim(), font: { size: 10 }, maxTicksLimit: 12 }
+          },
+          y: {
+            grid: { color: chartGrid() },
+            ticks: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('--text-3').trim(),
+              font: { size: 10 },
+              callback: (v) => fmtMoney(v, false, 0)
+            }
+          }
+        }
+      }
+    });
+  }
+
   function renderMonthlyChart() {
     const ctx = $('monthly-chart');
     if (!ctx) return;
@@ -4887,6 +5009,7 @@
         renderRMultipleChart();
         renderDowChart();
         renderHourChart();
+        renderStrategyCompareChart();
       }, 50);
     }
   }
@@ -5117,7 +5240,7 @@
       $('f-mood').value = t.mood ?? 3;
       $('f-notes').value = t.notes || '';
     } else {
-      $('f-asset').value = 'forex';
+      $('f-asset').value = 'futures';
       updateSymbolPresets();
       $('f-symbol-preset').value = '';
       $('f-symbol').value = '';
@@ -5681,6 +5804,18 @@
       });
     });
 
+    // BE (break-even) button: set exit = entry
+    const beBtn = $('f-exit-be');
+    if (beBtn) beBtn.addEventListener('click', () => {
+      const entry = $('f-entry').value;
+      if (!entry || parseFloat(entry) <= 0) {
+        showToast('Enter an entry price first', 'error');
+        return;
+      }
+      $('f-exit').value = entry;
+      updatePreview();
+    });
+
     // Detail
     $('detail-close').addEventListener('click', () => $('detail-modal').classList.remove('open'));
     $('detail-close-btn').addEventListener('click', () => $('detail-modal').classList.remove('open'));
@@ -6135,6 +6270,10 @@
 .strat-actions button:hover {background:var(--bg-2);color:var(--text-0);}
 .strat-desc {font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.45;min-height:36px;}
 .strat-stats-primary {display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;background:linear-gradient(135deg,var(--bg-2),var(--bg-2));border-radius:10px;margin-bottom:8px;border:1px solid var(--border);}
+.strat-empty {display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 14px;background:var(--bg-2);border:1px dashed var(--border-strong);border-radius:10px;color:var(--text-2);}
+.strat-empty svg {color:var(--text-3);margin-bottom:2px;}
+.strat-empty > div:first-of-type {font-size:12px;font-weight:600;color:var(--text-1);}
+.strat-empty-hint {font-size:11px;color:var(--text-3);line-height:1.4;}
 .strat-stat-hero {text-align:center;}
 .strat-stat-big {font-size:22px;font-weight:700;color:var(--text-0);font-family:'JetBrains Mono',monospace;line-height:1.1;letter-spacing:-0.02em;}
 .strat-stat-sub {font-size:11px;color:var(--text-3);margin-top:2px;font-family:'JetBrains Mono',monospace;min-height:14px;}
